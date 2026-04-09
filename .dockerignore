@@ -1,0 +1,36 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Docker files (don't copy Compose/Prometheus into the API image)
+docker-compose.yml
+prometheus.yml
+.env
+Dockerfile
+.dockerignore
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Root-level originals (only app/ package is needed inside the image)
+main.py
+metrics.py
+model.py
+search.py

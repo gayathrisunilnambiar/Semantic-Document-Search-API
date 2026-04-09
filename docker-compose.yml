@@ -1,0 +1,52 @@
+# ─────────────────────────────────────────────────────────────────────
+# docker-compose.yml — Semantic Document Search API + Prometheus
+# ─────────────────────────────────────────────────────────────────────
+# Start:   docker compose up --build
+# Stop:    docker compose down
+# Logs:    docker compose logs -f api
+# ─────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── FastAPI Semantic Search API ──────────────────────────────────
+  # Builds the image from the Dockerfile in the current directory.
+  # The .env file injects environment variables (e.g. LOG_LEVEL,
+  # MODEL_NAME) without hard-coding secrets into the Compose file.
+  api:
+    build:
+      context: .                     # Build context is the repo root
+      dockerfile: Dockerfile         # Explicit (default is "Dockerfile")
+    container_name: search-api
+    ports:
+      - "8000:8000"                  # host:container — exposes API on localhost:8000
+    env_file:
+      - .env                         # Load environment variables from .env file
+    networks:
+      - search-net                   # Attach to shared network so Prometheus can reach the API
+    restart: unless-stopped          # Auto-restart on crash, but not after manual stop
+
+  # ── Prometheus Monitoring ───────────────────────────────────────
+  # Official Prometheus image. We bind-mount our custom scrape config
+  # so Prometheus knows where to find the API's /metrics endpoint.
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"                  # Prometheus web UI at http://localhost:9090
+    volumes:
+      # Mount the scrape config into the container's expected path.
+      # "ro" = read-only — the container should never modify this file.
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    networks:
+      - search-net                   # Same network as the API, enabling DNS-based service discovery
+    restart: unless-stopped
+    depends_on:
+      - api                          # Start api first (Prometheus needs a target to scrape)
+
+# ── Shared network ────────────────────────────────────────────────
+# A user-defined bridge network lets containers resolve each other
+# by service name (e.g. "api:8000"). The default bridge network
+# does NOT provide DNS resolution between containers.
+networks:
+  search-net:
+    driver: bridge
